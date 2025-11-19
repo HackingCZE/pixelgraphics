@@ -10,10 +10,10 @@ namespace Aarthificial.PixelGraphics.Forward
         [SerializeField] internal VelocityPassSettings settings;
         [SerializeField] internal SimulationSettings simulation;
 
-        [SerializeField, HideInInspector, Reload("Runtime/Shaders/Velocity/Emitter.shader")]
+        [SerializeField, Reload("Runtime/Shaders/Velocity/Emitter.shader")]
         private Shader emitterShader;
 
-        [SerializeField, HideInInspector, Reload("Runtime/Shaders/Velocity/Blit.shader")]
+        [SerializeField, Reload("Runtime/Shaders/Velocity/Blit.shader")]
         private Shader blitShader;
 
         private VelocityRenderPass _pass;
@@ -35,9 +35,15 @@ namespace Aarthificial.PixelGraphics.Forward
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            _pass.ConfigureTarget(renderer.cameraColorTarget);
+            //_pass.ConfigureTarget(renderer.cameraColorTarget); //COMMENT THIS LINE OF CODE
             _pass.Setup(settings, simulation);
             renderer.EnqueuePass(_pass);
+        }
+        
+        //ADD THIS OVERRIDE FUNCTION
+        public override void SetupRenderPasses(ScriptableRenderer renderer, in RenderingData renderingData)
+        {
+            _pass.ConfigureTarget(renderer.cameraColorTargetHandle); //ADD THIS LINE OF CODE
         }
     }
 }

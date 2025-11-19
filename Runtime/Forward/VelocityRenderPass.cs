@@ -11,8 +11,11 @@ namespace Aarthificial.PixelGraphics.Forward
     {
         private readonly List<ShaderTagId> _shaderTagIdList = new List<ShaderTagId>();
         private readonly ProfilingSampler _profilingSampler;
-        private readonly RenderTargetHandle _temporaryVelocityTarget;
-        private readonly RenderTargetHandle _velocityTarget;
+
+        // RTHandle místo RenderTargetHandle
+        private RTHandle _temporaryVelocityTarget;
+        private RTHandle _velocityTarget;
+
         private readonly Material _emitterMaterial;
         private readonly Material _blitMaterial;
 
@@ -20,14 +23,14 @@ namespace Aarthificial.PixelGraphics.Forward
         private SimulationSettings _simulationSettings;
         private FilteringSettings _filteringSettings;
         private Vector2 _previousPosition;
+        private RTHandle _cameraColorTarget;
 
         public VelocityRenderPass(Material emitterMaterial, Material blitMaterial)
         {
             _emitterMaterial = emitterMaterial;
             _blitMaterial = blitMaterial;
 
-            _temporaryVelocityTarget.Init("_PG_TemporaryVelocityTextureTarget");
-            _velocityTarget.Init("_VelocityTarget");
+            // RTHandle se neinituje přes .Init, alokuje se až podle velikosti rendertargetu.
 
             _shaderTagIdList.Add(new ShaderTagId("SRPDefaultUnlit"));
             _shaderTagIdList.Add(new ShaderTagId("UniversalForward"));
@@ -49,6 +52,15 @@ namespace Aarthificial.PixelGraphics.Forward
             _passSettings = passSettings;
             _simulationSettings = simulationSettings;
         }
+        
+        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
+        {
+            _cameraColorTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
+
+            // To zajistí, že colorAttachmentHandle už není null
+            ConfigureTarget(_cameraColorTarget);
+        }
+
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
@@ -65,31 +77,42 @@ namespace Aarthificial.PixelGraphics.Forward
                 float height = 2 * cameraData.camera.orthographicSize * _passSettings.pixelsPerUnit;
                 float width = height * cameraData.camera.aspect;
 
-                var cameraPosition = (Vector2) cameraData.GetViewMatrix().GetColumn(3);
+                var cameraPosition = (Vector2)cameraData.GetViewMatrix().GetColumn(3);
                 var delta = cameraPosition - _previousPosition;
                 var screenDelta = cameraData.GetProjectionMatrix() * cameraData.GetViewMatrix() * delta;
                 _previousPosition = cameraPosition;
 
-                cmd.GetTemporaryRT(
-                    _temporaryVelocityTarget.id,
-                    textureWidth,
-                    textureHeight,
-                    0,
+                // ─────────────────────────────────────────────
+                // RTHandle alokace místo GetTemporaryRT
+                // ─────────────────────────────────────────────
+                var desc = renderingData.cameraData.cameraTargetDescriptor;
+                desc.width = textureWidth;
+                desc.height = textureHeight;
+                desc.depthBufferBits = 0;
+                desc.graphicsFormat = GraphicsFormat.R16G16B16A16_SFloat;
+
+                RenderingUtils.ReAllocateIfNeeded(
+                    ref _temporaryVelocityTarget,
+                    desc,
                     FilterMode.Bilinear,
-                    GraphicsFormat.R16G16B16A16_SFloat
-                );
-                cmd.GetTemporaryRT(
-                    _velocityTarget.id,
-                    textureWidth,
-                    textureHeight,
-                    0,
-                    FilterMode.Bilinear,
-                    GraphicsFormat.R16G16B16A16_SFloat
+                    TextureWrapMode.Clamp,
+                    name: "_PG_TemporaryVelocityTextureTarget"
                 );
 
+                RenderingUtils.ReAllocateIfNeeded(
+                    ref _velocityTarget,
+                    desc,
+                    FilterMode.Bilinear,
+                    TextureWrapMode.Clamp,
+                    name: "_VelocityTarget"
+                );
+
+                // ─────────────────────────────────────────────
+                // Globální parametry
+                // ─────────────────────────────────────────────
                 cmd.SetGlobalVector(ShaderIds.CameraPositionDelta, screenDelta / 2);
-                cmd.SetGlobalTexture(ShaderIds.VelocityTexture, _velocityTarget.id);
-                cmd.SetGlobalTexture(ShaderIds.PreviousVelocityTexture, _temporaryVelocityTarget.id);
+                cmd.SetGlobalTexture(ShaderIds.VelocityTexture, _velocityTarget);
+                cmd.SetGlobalTexture(ShaderIds.PreviousVelocityTexture, _temporaryVelocityTarget);
                 cmd.SetGlobalVector(ShaderIds.VelocitySimulationParams, _simulationSettings.Value);
                 cmd.SetGlobalVector(
                     ShaderIds.PixelScreenParams,
@@ -97,11 +120,14 @@ namespace Aarthificial.PixelGraphics.Forward
                         width,
                         height,
                         _passSettings.pixelsPerUnit,
-                        1 / _passSettings.pixelsPerUnit
+                        1f / _passSettings.pixelsPerUnit
                     )
                 );
 
-                CoreUtils.SetRenderTarget(cmd, _velocityTarget.id);
+                // ─────────────────────────────────────────────
+                // Fullscreen pass do velocity targetu
+                // ─────────────────────────────────────────────
+                CoreUtils.SetRenderTarget(cmd, _velocityTarget);
                 cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                 cmd.SetViewport(new Rect(0, 0, textureWidth, textureHeight));
                 cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _blitMaterial, 0, 0);
@@ -109,6 +135,9 @@ namespace Aarthificial.PixelGraphics.Forward
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
+                // ─────────────────────────────────────────────
+                // Render emitterů podle layer / rendering layer
+                // ─────────────────────────────────────────────
                 if (!cameraData.isPreviewCamera && !cameraData.isSceneViewCamera)
                 {
                     var drawingSettings = CreateDrawingSettings(
@@ -134,19 +163,39 @@ namespace Aarthificial.PixelGraphics.Forward
                     }
                 }
 
-                // TODO Implement proper double buffering
-                cmd.Blit(_velocityTarget.id, _temporaryVelocityTarget.id);
+                // ─────────────────────────────────────────────
+// TODO Implement proper double buffering
+// kopíruje velocity do temporary bufferu
+// ─────────────────────────────────────────────
+                cmd.Blit(_velocityTarget, _temporaryVelocityTarget);
+
 #if UNITY_EDITOR
                 if (_passSettings.preview)
-                    cmd.Blit(_velocityTarget.id, colorAttachment);
+                    cmd.Blit(_velocityTarget, _cameraColorTarget);
 #endif
-                CoreUtils.SetRenderTarget(cmd, colorAttachment);
-                cmd.ReleaseTemporaryRT(_temporaryVelocityTarget.id);
-                cmd.ReleaseTemporaryRT(_velocityTarget.id);
+
+                CoreUtils.SetRenderTarget(cmd, _cameraColorTarget);
+
             }
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+
+        public override void OnCameraCleanup(CommandBuffer cmd)
+        {
+            // Uvolnění RTHandle (místo ReleaseTemporaryRT)
+            if (_temporaryVelocityTarget != null)
+            {
+                _temporaryVelocityTarget.Release();
+                _temporaryVelocityTarget = null;
+            }
+
+            if (_velocityTarget != null)
+            {
+                _velocityTarget.Release();
+                _velocityTarget = null;
+            }
         }
     }
 }
