@@ -6,13 +6,13 @@
 [![Patreon](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Daarthificial%26type%3Dpatrons&style=for-the-badge)](https://www.patreon.com/aarthificial)
 
 PixelGraphics is a collection of interactive foliage shaders for Unity<br>
-_Tested on Unity 2020.2 - PC & WebGL_
+_Tested on Unity 6 - PC (Just Velocity Camera component)
 
 ### Installation
 Pixel Graphics can be [installed as a Unity package](https://docs.unity3d.com/Manual/upm-ui-giturl.html) 
 using this url:
 ```
-https://github.com/aarthificial/pixelgraphics.git
+https://github.com/HackingCZE/pixelgraphics.git
 ```
 
 ### Usage
