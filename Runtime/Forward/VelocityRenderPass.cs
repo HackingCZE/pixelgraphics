@@ -90,6 +90,7 @@ namespace Aarthificial.PixelGraphics.Forward
                     cmd.SetGlobalTexture(ShaderIds.VelocityTexture, _velocityID);
                     cmd.SetGlobalTexture(ShaderIds.PreviousVelocityTexture, _tempVelocityID);
                     cmd.SetGlobalVector(ShaderIds.VelocitySimulationParams, _simulationSettings.Value);
+                    cmd.SetGlobalVector(ShaderIds.VelocitySimulationExtraParams, _simulationSettings.ExtraParams);
                     cmd.SetGlobalVector(ShaderIds.PixelScreenParams, new Vector4(width, height, _passSettings.pixelsPerUnit, 1 / _passSettings.pixelsPerUnit));
 
                     // --- SIMULATION (Render to _velocityID) ---

@@ -14,5 +14,6 @@ namespace Aarthificial.PixelGraphics.Common
         internal static readonly int TemporaryVelocityTexture = Shader.PropertyToID("_PG_TemporaryVelocityTexture");
         internal static readonly int PixelScreenParams = Shader.PropertyToID("_PG_PixelScreenParams");
         internal static readonly int VelocitySimulationParams = Shader.PropertyToID("_PG_VelocitySimulationParams");
+        internal static readonly int VelocitySimulationExtraParams = Shader.PropertyToID("_PG_VelocitySimulationExtra");
     }
 }
