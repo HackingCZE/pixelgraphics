@@ -17,11 +17,6 @@ namespace Aarthificial.PixelGraphics.Forward
         {
             private readonly List<ShaderTagId> _shaderTagIdList = new List<ShaderTagId>();
             private readonly ProfilingSampler _profilingSampler;
-
-            // Tyto RTHandle úplně smažeme, protože používáš GetTemporaryRT přes int ID
-            // private RTHandle _temporaryVelocityTarget; 
-            // private RTHandle _velocityTarget;
-
             private readonly Material _emitterMaterial;
             private readonly Material _blitMaterial;
 
@@ -39,7 +34,6 @@ namespace Aarthificial.PixelGraphics.Forward
                 _emitterMaterial = emitterMaterial;
                 _blitMaterial = blitMaterial;
 
-                // Správná inicializace ID
                 _velocityID = Shader.PropertyToID("_VelocityTarget");
                 _tempVelocityID = Shader.PropertyToID("_PG_TemporaryVelocityTextureTarget");
 
@@ -62,7 +56,6 @@ namespace Aarthificial.PixelGraphics.Forward
 
             public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
             {
-                // Barvu kamery si necháme jako RTHandle, to je v Unity 6 správně
                 _cameraColorTarget = renderingData.cameraData.renderer.cameraColorTargetHandle;
                 ConfigureTarget(_cameraColorTarget);
             }
@@ -70,7 +63,6 @@ namespace Aarthificial.PixelGraphics.Forward
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
                 var cmd = CommandBufferPool.Get();
-                // cmd.Clear() se v Execute URP obvykle nevolá, ProfilingScope stačí
 
                 using(new ProfilingScope(cmd, _profilingSampler))
                 {
@@ -87,11 +79,11 @@ namespace Aarthificial.PixelGraphics.Forward
                     var screenDelta = cameraData.GetProjectionMatrix() * cameraData.GetViewMatrix() * delta;
                     _previousPosition = cameraPosition;
 
-                    // Alokace dočasných textur (Unity 6 stále podporuje GraphicsFormat)
+                    // allocation temp textures
                     cmd.GetTemporaryRT(_tempVelocityID, textureWidth, textureHeight, 0, FilterMode.Bilinear, GraphicsFormat.R16G16B16A16_SFloat);
                     cmd.GetTemporaryRT(_velocityID, textureWidth, textureHeight, 0, FilterMode.Bilinear, GraphicsFormat.R16G16B16A16_SFloat);
 
-                    // Nastavení globálních proměnných pro shadery
+                    // setup globals properties
                     Vector4 simSize = new Vector4(1.0f / textureWidth, 1.0f / textureHeight, textureWidth, textureHeight);
                     cmd.SetGlobalVector("_SimulationSize", simSize);
                     cmd.SetGlobalVector(ShaderIds.CameraPositionDelta, screenDelta / 2);
@@ -100,16 +92,14 @@ namespace Aarthificial.PixelGraphics.Forward
                     cmd.SetGlobalVector(ShaderIds.VelocitySimulationParams, _simulationSettings.Value);
                     cmd.SetGlobalVector(ShaderIds.PixelScreenParams, new Vector4(width, height, _passSettings.pixelsPerUnit, 1 / _passSettings.pixelsPerUnit));
 
-                    // --- SIMULACE (Render do _velocityID) ---
+                    // --- SIMULATION (Render to _velocityID) ---
                     CoreUtils.SetRenderTarget(cmd, _velocityID);
                     cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                     cmd.SetViewport(new Rect(0, 0, textureWidth, textureHeight));
                     cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, _blitMaterial, 0, 0);
 
-                    // Vrácení matic pro standardní DrawRenderers
                     cmd.SetViewProjectionMatrices(cameraData.GetViewMatrix(), cameraData.GetProjectionMatrix());
 
-                    // Musíme odeslat buffer, než začneme volat context.DrawRenderers
                     context.ExecuteCommandBuffer(cmd);
                     cmd.Clear();
 
@@ -117,7 +107,6 @@ namespace Aarthificial.PixelGraphics.Forward
                     {
                         var drawingSettings = CreateDrawingSettings(_shaderTagIdList, ref renderingData, SortingCriteria.CommonTransparent);
 
-                        // 1. Klasické vrstvy
                         if(_passSettings.layerMask != 0)
                         {
                             _filteringSettings.layerMask = _passSettings.layerMask;
@@ -126,7 +115,6 @@ namespace Aarthificial.PixelGraphics.Forward
                             context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
                         }
 
-                        // 2. Light Layers (Tvoje specifické nastavení)
                         if(_passSettings.renderingLayerMask != 0)
                         {
                             _filteringSettings.layerMask = -1;
@@ -136,10 +124,6 @@ namespace Aarthificial.PixelGraphics.Forward
                         }
                     }
 
-                    // TODO: Tady je problém. ReleaseTemporaryRT na konci smaže data.
-                    // Pokud chceš Double Buffering (brát data z minulého framu), 
-                    // nesmíš tyto textury uvolňovat tady, ale musíš je držet v RTHandle (jak jsme psali dříve).
-
                     cmd.Blit(_velocityID, _tempVelocityID);
 
 #if UNITY_EDITOR
@@ -147,7 +131,6 @@ namespace Aarthificial.PixelGraphics.Forward
                         cmd.Blit(_velocityID, colorAttachmentHandle);
 #endif
                     CoreUtils.SetRenderTarget(cmd, colorAttachmentHandle);
-                    // Úklid CommandBufferu
                     cmd.ReleaseTemporaryRT(_tempVelocityID);
                     cmd.ReleaseTemporaryRT(_velocityID);
                 }
@@ -158,8 +141,6 @@ namespace Aarthificial.PixelGraphics.Forward
 
             public override void OnCameraCleanup(CommandBuffer cmd)
             {
-                // Tady v tomto případě nic neuvolňujeme, 
-                // protože jsme uvolnili v Execute přes ReleaseTemporaryRT.
             }
         }
 }
