@@ -12,6 +12,7 @@ TEXTURE2D(_PG_TemporaryVelocityTexture);
 SAMPLER(sampler_PG_TemporaryVelocityTexture);
 
 float4 _PG_VelocitySimulationParams;
+float4 _PG_VelocitySimulationExtra;
 float4 _PG_CameraPositionDelta;
 CBUFFER_END
 
@@ -28,6 +29,10 @@ float4 SimulateVelocity(float2 uv)
     neighbouringData *= 0.25f;
     previousData = lerp(previousData, neighbouringData, _PG_VelocitySimulationParams.z);
 
+    float fade = _PG_VelocitySimulationExtra.x;
+    float vInfluence = _PG_VelocitySimulationExtra.y;
+    float threshold = _PG_VelocitySimulationExtra.z;
+
     float2 distance = previousData.xy;
     float2 velocity = previousData.zw;
 
@@ -43,8 +48,21 @@ float4 SimulateVelocity(float2 uv)
 
     float dt = min(unity_DeltaTime.x, _PG_VelocitySimulationParams.w);
     float2 acceleration = -distance * _PG_VelocitySimulationParams.x - velocity * _PG_VelocitySimulationParams.y;
-    velocity += acceleration * dt;
+    velocity += acceleration * dt * vInfluence;
     distance += velocity * dt;
+
+    float dissipation = pow(fade, dt * 60.0f); 
+    distance *= dissipation;
+    velocity *= dissipation;
+
+    if (length(distance) < threshold) distance = 0;
+    if (length(velocity) < threshold) velocity = 0;
+
+    if (uv.x < offset.x || uv.x > 1 - offset.x || uv.y < offset.y || uv.y > 1 - offset.y)
+    {
+        velocity = 0;
+        distance = 0;
+    }
 
     return float4(distance.x, distance.y, velocity.x, velocity.y);
 }

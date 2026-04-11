@@ -14,7 +14,7 @@ namespace Aarthificial.PixelGraphics.Common
         [Tooltip(
             "Which rendering layers the velocity camera renders.\nAllows you to use sprites as velocity emitters while keeping them visible in the default camera."
         )]
-        public RenderingLayerMask renderingLayerMask;
+        public uint renderingLayerMask;
 
         [Tooltip(
             "Which layers the velocity camera renders.\nThe layers should be excluded from the default camera's culling mask"
