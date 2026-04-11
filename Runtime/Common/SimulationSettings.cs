@@ -46,5 +46,6 @@ namespace Aarthificial.PixelGraphics.Common
             );
         
         public Vector4 ExtraParams => new Vector4(trailFade, velocityInfluence, minThreshold, 0);
+        
     }
 }

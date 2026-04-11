@@ -11,7 +11,7 @@
   },
   "type": "library",
   "dependencies": {
-    "com.unity.render-pipelines.universal": "10.4.0"
-  },
-  "_fingerprint": "5d5d2dab89b2455f0ae33b7e15b8628d1f583551"
+    "com.unity.render-pipelines.universal": "10.4.0",
+    "com.dh.shadergraph-unbatcher": "https://github.com/HackingCZE/unity-shadergraph-unbatcher.git#main"
+  }
 }

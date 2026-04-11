@@ -1,9 +1,4 @@
-﻿using System.Collections.Generic;
-using Aarthificial.PixelGraphics.Common;
-using UnityEngine;
-using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
+﻿using UnityEngine.Experimental.Rendering;
 
 namespace Aarthificial.PixelGraphics.Forward
 {
@@ -67,7 +62,7 @@ namespace Aarthificial.PixelGraphics.Forward
                 using(new ProfilingScope(cmd, _profilingSampler))
                 {
                     ref var cameraData = ref renderingData.cameraData;
-
+                    
                     int textureWidth = Mathf.FloorToInt(cameraData.camera.pixelWidth * _passSettings.textureScale);
                     int textureHeight = Mathf.FloorToInt(cameraData.camera.pixelHeight * _passSettings.textureScale);
 
