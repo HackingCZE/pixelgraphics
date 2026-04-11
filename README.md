@@ -19,7 +19,7 @@ https://github.com/HackingCZE/pixelgraphics.git
 
 ### Optional: ShaderGraph Unbatcher
 
-If you need to disable SRP Batching for specific foliage interactions or optimization reasons (e.g. to ensure individual material property updates), you can use the **ShaderGraph Unbatcher** tool. It allows you to export any Shader Graph as a standalone shader with batching disabled.
+If you need to disable SRP Batching for specific foliage interactions or optimization reasons (e.g. to ensure individual material property updates), you can use the [**ShaderGraph Unbatcher**](https://github.com/HackingCZE/unity-shadergraph-unbatcher) tool. It allows you to export any Shader Graph as a standalone shader with batching disabled.
 
 **Optional Tool URL:**
 
