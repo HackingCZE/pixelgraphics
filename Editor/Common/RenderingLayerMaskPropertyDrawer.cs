@@ -1,5 +1,4 @@
-﻿using Aarthificial.PixelGraphics.Common;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 namespace Aarthificial.PixelGraphics.Editor.Common
