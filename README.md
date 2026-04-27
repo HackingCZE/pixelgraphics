@@ -34,6 +34,6 @@ https://github.com/HackingCZE/unity-shadergraph-unbatcher.git
 1. [Create materials using the available shaders](./Documentation~/shaders.md)
 1. [Or create your own shaders](./Documentation~/properties.md)
 
-### Release video:
-
+### Release videos:
+[![Making Foliage React to Player and Enemies | Foliage shader in Unity | Devlog #1](https://img.youtube.com/vi/mQmJsU14IvY/maxresdefault.jpg)](https://youtu.be/mQmJsU14IvY)
 [![Interactive Foliage Shaders for Unity](https://img.youtube.com/vi/ecYWvfMoRIM/maxresdefault.jpg)](https://youtu.be/ecYWvfMoRIM)
